@@ -1,0 +1,2 @@
+@python RendersToSpritesConverter.py
+@pause

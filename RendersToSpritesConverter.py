@@ -2,7 +2,7 @@ from PIL import Image, ImageChops, ImageFilter
 # sprites-making tool by ShereKhanRomeo
 # this code is free to use, change and post anywhere as I don't care XD
 
-bg_pic = '25.webp'
+background_pic = '25.webp'
 pics_to_be_converted_into_sprites = [
     '26.webp',
     '27.webp',
@@ -15,26 +15,26 @@ pics_to_be_converted_into_sprites = [
 # left empty to not change file format
 save_output_files_as = "" # ".png" < example in case you need to change it
 
-#make sure those end with /
+# make sure those end with /
 _take_original_pics_from = 'D:/folder_to_get_pics_from/'
 _place_only_changed_sprites_into = 'D:/output_folder/'
 
 # how sharp sprites contours are meant to be.
-# 0 is "turned off", sprites will contain lot of noise, but result in more smoothness
-# 1.5 - kinda "meduim?" setting
+# 0 - is "turned off", sprites will contain lot of noise, but result in more smoothness
+# 1.5 - recommended
 # 7 - sharp, less noise, sprites are like cut out from paper with scissors
-_sharpness_lvl = 7
+_sharpness_lvl = 1.5
 
 # cleanses too small differences
-# 0 cleans nothing
-# 7 how it was
-# 50 and higher is not recommended
-# values higher than 100 is not tested
-_noise_threshold = 2
+# 0 - cleans nothing
+# 1 - recommended
+# 20 and higher are not recommended
+# values higher than 100 are not tested
+_noise_threshold = 1
 
 # saves masks as a separate file alongside processed pics
-# shows which pixels will be saved from original pic (shown by red pixels) and which pixels will be transparent
-# to experiment with settings and see what suits better for your needs
+# red color shows which pixels will be saved from original pic and other pixels will be transparent
+# left here to let you experiment with settings and see what suits better for your needs
 _save_masks_preview = True
 
 
@@ -71,5 +71,5 @@ def processPicsWithNoiseThreshold(_bgPic, _spritePic):
 
 print("Converting {0} pics into sprites...".format(len(pics_to_be_converted_into_sprites)))
 for sprite in pics_to_be_converted_into_sprites:
-    processPicsWithNoiseThreshold(bg_pic, sprite)
+    processPicsWithNoiseThreshold(background_pic, sprite)
 print("Done!")
