@@ -81,22 +81,23 @@ class MainWindow(QMainWindow):
         self.outputDirButton.clicked.connect(self.outputDirSelected)
 
         self.sharpnessLabel = QLabel(text="Sharpness (hover me):")
-        self.sharpnessLabel.setToolTip("How sharp sprites contours are meant to be.\n" +
-                                       "0 - is 'turned off', sprites will contain lot of noise, but result in more smoothness\n" +
-                                       "1.5 - recommended\n" +
+        self.sharpnessLabel.setToolTip("How sharp sprites contours are meant to be.\n"
+                                       "0 - is 'turned off', sprites will contain lot of noise, but result in more smoothness\n"
+                                       "1.5 - recommended\n"
                                        "7 - sharp, less noise, sprites are like cut out from paper with scissors")
         self.sharpnessInput = QLineEdit()
         self.sharpnessInput.setText(str(self.settings['sharpness']))
         self.noiseLabel = QLabel(text="Noise threshold (hover me):")
-        self.noiseLabel.setToolTip("Cleanses too small differences\n" +
-                                   "0 - cleans nothing\n" +
-                                   "2.5 - recommended\n" +
+        self.noiseLabel.setToolTip("Cleanses too small differences\n"
+                                   "0 - cleans nothing\n"
+                                   "2.5 - recommended\n"
                                    "10 and higher are not recommended")
         self.noiseInput = QLineEdit()
         self.noiseInput.setText(str(self.settings['noise']))
         self.multithreadingLabel = QLabel(text="Multithreading (hover me):")
-        self.multithreadingLabel.setToolTip("If checked all sprite pics will be processed simultaneously.\nOtherwise one-by-one.")
+        self.multithreadingLabel.setToolTip("If checked all sprite pics will be processed simultaneously.\nOtherwise one-by-one with less RAM usage.")
         self.multithreadingCheckBox = QCheckBox()
+        self.multithreadingCheckBox.setChecked(self.settings['multi'])
 
         self.settingsLabel = QLabel(text="Your selected output path, sharpness and noise settings will be remembered in 'ConverterSettings.json'.")
         self.startConvertingButton = QPushButton("Convert!")
@@ -158,7 +159,8 @@ class MainWindow(QMainWindow):
             return {
                 'sharpness': 2.9,
                 'noise': 2.9,
-                'output': _output_placeholder
+                'output': _output_placeholder,
+                'multi': False
             }
 
     def trySaveSettings(self):
@@ -166,6 +168,7 @@ class MainWindow(QMainWindow):
             self.settings['output'] = self.outputDirPath.text()
             self.settings['sharpness'] = self.sharpnessInput.text()
             self.settings['noise'] = self.noiseInput.text()
+            self.settings['multi'] = self.multithreadingCheckBox.isChecked()
             with open(_converter_settings_path, "w") as settingsFile:
                 json.dump(self.settings, settingsFile)
                 settingsFile.close()
