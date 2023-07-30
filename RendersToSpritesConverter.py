@@ -4,7 +4,7 @@ from threading import Thread
 
 from PIL import Image, ImageChops, ImageFilter
 from PyQt6.QtCore import QSize
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QWidget, QFileDialog, QHBoxLayout, QTextEdit, QProgressBar
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QWidget, QFileDialog, QHBoxLayout, QTextEdit, QProgressBar, QCheckBox
 
 # sprites-making tool by ShereKhanRomeo
 # this code is free to use, change and post anywhere as I don't care XD
@@ -17,35 +17,7 @@ _save_masks_preview = False
 _converter_settings_path = "ConverterSettings.json"
 _output_placeholder = "select output folder"
 
-
-def processPicsWithNoiseThreshold(_bgPic, _spritePic, _save_to, _sharpness_lvl, _noise_threshold):
-    bg = Image.open(_bgPic)
-    sprite = Image.open(_spritePic)
-    diff1 = ImageChops.difference(bg, sprite).convert('RGBA').filter(ImageFilter.GaussianBlur(_sharpness_lvl))
-    newimdata = []
-    dat = diff1.getdata()
-    for color in dat:
-        if color[0] + color[1] + color[2] <= _noise_threshold:
-            newimdata.append((0, 0, 0, 0))
-        else:
-            newimdata.append((255, 0, 0, 255))
-    mask = Image.new('RGBA', diff1.size)
-    mask.putdata(newimdata)
-    picName = _spritePic[_spritePic.rfind('/') + 1:]
-    if _save_masks_preview:
-        mask.save(_save_to + 'diff' + picName)
-    ImageChops.composite(sprite, Image.new("RGBA", sprite.size, 0), mask) \
-        .save((_save_to + picName), compress_level=6, lossless=True, quality=50, method=6)
-    # regarding save options:
-
-    # Only matters when saving in PNG:
-    # compress_level (default is 6, 0 - no compression, 1 is fastest and 9 is best compression
-
-    # Only matters when saving in WEBP:
-    # lossless (if True, switches to lossless compression and makes "quality" param be 0-no compression, 100- max compression)
-    # quality (if lossless is False, 0 gives the smallest size and 100 the largest)
-    # method (quality/speed trade-off (0=fast, 6=slower but better), defaults to 4)
-
+_threads = []
 
 app = QApplication([])
 
@@ -89,6 +61,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setFixedSize(QSize(600, 300))
         self.setWindowTitle("Sprites-making tool by ShereKhanRomeo")
+        self.done = 0
+        self.picsToDo = 0
 
         self.settings = self.tryLoadSettings()
 
@@ -106,27 +80,30 @@ class MainWindow(QMainWindow):
         self.outputDirButton = QPushButton("Select")
         self.outputDirButton.clicked.connect(self.outputDirSelected)
 
-        self.sharpnessLabel = QLabel(text="Sharpness (hover for help):")
-        self.sharpnessLabel.setToolTip("""How sharp sprites contours are meant to be.
-0 - is "turned off", sprites will contain lot of noise, but result in more smoothness
-1.5 - recommended
-7 - sharp, less noise, sprites are like cut out from paper with scissors""")
+        self.sharpnessLabel = QLabel(text="Sharpness (hover me):")
+        self.sharpnessLabel.setToolTip("How sharp sprites contours are meant to be.\n" +
+                                       "0 - is 'turned off', sprites will contain lot of noise, but result in more smoothness\n" +
+                                       "1.5 - recommended\n" +
+                                       "7 - sharp, less noise, sprites are like cut out from paper with scissors")
         self.sharpnessInput = QLineEdit()
         self.sharpnessInput.setText(str(self.settings['sharpness']))
-        self.noiseLabel = QLabel(text="Noise threshold (hover for help):")
-        self.noiseLabel.setToolTip("""Cleanses too small differences
-0 - cleans nothing
-1.5 - recommended
-10 and higher are not recommended""")
+        self.noiseLabel = QLabel(text="Noise threshold (hover me):")
+        self.noiseLabel.setToolTip("Cleanses too small differences\n" +
+                                   "0 - cleans nothing\n" +
+                                   "2.5 - recommended\n" +
+                                   "10 and higher are not recommended")
         self.noiseInput = QLineEdit()
         self.noiseInput.setText(str(self.settings['noise']))
+        self.multithreadingLabel = QLabel(text="Multithreading (hover me):")
+        self.multithreadingLabel.setToolTip("If checked all sprite pics will be processed simultaneously.\nOtherwise one-by-one.")
+        self.multithreadingCheckBox = QCheckBox()
 
         self.settingsLabel = QLabel(text="Your selected output path, sharpness and noise settings will be remembered in 'ConverterSettings.json'.")
         self.startConvertingButton = QPushButton("Convert!")
         self.startConvertingButton.clicked.connect(self.startConverting)
 
-        self.infoLabel = QLabel()
-        self.infoLabel.setFixedWidth(50)
+        self.infoLabel = QLabel("0/0")
+        self.infoLabel.setFixedWidth(30)
         self.progressBar = QProgressBar()
         self.progressBar.setMinimum(0)
         self.progressBar.setMaximum(1)
@@ -148,6 +125,8 @@ class MainWindow(QMainWindow):
         layoutSettings.addWidget(self.sharpnessInput)
         layoutSettings.addWidget(self.noiseLabel)
         layoutSettings.addWidget(self.noiseInput)
+        layoutSettings.addWidget(self.multithreadingLabel)
+        layoutSettings.addWidget(self.multithreadingCheckBox)
         layoutOther = QVBoxLayout()
         layoutOther.addWidget(self.settingsLabel)
         layoutOther.addWidget(self.startConvertingButton)
@@ -192,26 +171,68 @@ class MainWindow(QMainWindow):
                 settingsFile.close()
 
     def startConverting(self):
+        global _threads
         self.trySaveSettings()
         sprites = self.labelSpriteImagesHere.toPlainText().splitlines()
-        picsToDo = len(sprites)
-        done = 0
-        self.progressBar.setMaximum(picsToDo)
-        self.infoLabel.setText(str(done) + "/" + str(picsToDo))
+        self.picsToDo = len(sprites)
+        self.done = 0
+        self.progressBar.setMaximum(self.picsToDo*6)
+        self.progressBar.setValue(0)
+        self.infoLabel.setText(str(self.done) + "/" + str(self.picsToDo))
         for sprite in sprites:
-            thread = Thread(target=processPicsWithNoiseThreshold,
+            thread = Thread(target=self.processPicsWithNoiseThreshold,
                             args=(self.labelBgImageHere.text(), sprite, self.outputDirPath.text() + '/', float(self.sharpnessInput.text()), float(self.noiseInput.text())))
             thread.daemon = True
             # processPicsWithNoiseThreshold(self.labelBgImageHere.text(), sprite, self.outputDirPath.text()+'/', float(self.sharpnessInput.text()), float(self.noiseInput.text()))
             thread.start()
-            #thread.join()
-            done += 1
-            self.infoLabel.setText(str(done) + "/" + str(picsToDo))
-            self.progressBar.setValue(done)
+            _threads.append(thread)
+            if not self.multithreadingCheckBox.isChecked():
+                thread.join()
+
+    def processPicsWithNoiseThreshold(self, _bgPic, _spritePic, _save_to, _sharpness_lvl, _noise_threshold):
+        bg = Image.open(_bgPic)
+        self.progressBar.setValue(self.progressBar.value()+1)
+        sprite = Image.open(_spritePic)
+        self.progressBar.setValue(self.progressBar.value()+1)
+        diff1 = ImageChops.difference(bg, sprite).convert('RGBA').filter(ImageFilter.GaussianBlur(_sharpness_lvl))
+        self.progressBar.setValue(self.progressBar.value()+1)
+        newimdata = []
+        dat = diff1.getdata()
+        for color in dat:
+            if sum(color[:3]) <= _noise_threshold:
+                newimdata.append((0, 0, 0, 0))
+            else:
+                newimdata.append((255, 0, 0, 255))
+        self.progressBar.setValue(self.progressBar.value()+1)
+        mask = Image.new('RGBA', diff1.size)
+        # noinspection PyTypeChecker
+        mask.putdata(newimdata)
+        picName = _spritePic[_spritePic.rfind('/') + 1:]
+        self.progressBar.setValue(self.progressBar.value()+1)
+        if _save_masks_preview:
+            mask.save(_save_to + 'diff' + picName)
+        ImageChops.composite(sprite, Image.new("RGBA", sprite.size, 0), mask) \
+            .save((_save_to + picName), compress_level=6, lossless=True, quality=0, method=6)
+        # regarding save options:
+
+        # Only matters when saving in PNG:
+        # compress_level (default is 6, 0 - no compression, 1 is fastest and 9 is best compression
+
+        # Only matters when saving in WEBP:
+        # lossless (if True, switches to lossless compression and makes "quality" param be 0-no compression, 100- max compression)
+        # quality (if lossless is False, 0 gives the smallest size and 100 the largest)
+        # method (quality/speed trade-off (0=fast, 6=slower but better), defaults to 4)
+
+        self.progressBar.setValue(self.progressBar.value()+1)
+        self.done += 1
+        self.infoLabel.setText(str(self.done) + "/" + str(self.picsToDo))
 
 
-window = MainWindow()  # window starts hidden
-window.show()  # need to show it manually
-
-# Run the loop
-app.exec()
+try:
+    window = MainWindow()  # window starts hidden
+    window.show()  # need to show it manually
+    # Run the loop
+    app.exec()
+finally:
+    for t in _threads:
+        t.join()
