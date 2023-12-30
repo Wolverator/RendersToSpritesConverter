@@ -40,7 +40,6 @@ jobs:
           nuitka-version: main
           script-name: RendersToSpritesConverter.py
           onefile: true
-          enable-plugins: pyside6
 
       # Uploads artifact
       - name: Release
