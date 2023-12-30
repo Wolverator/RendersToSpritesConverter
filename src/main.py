@@ -5,7 +5,8 @@ from threading import Thread
 from traceback import format_exception
 from PIL import Image, ImageChops, ImageFilter
 from PyQt6.QtCore import QSize
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QWidget, QFileDialog, QHBoxLayout, QTextEdit, QProgressBar, QCheckBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QVBoxLayout, QWidget,\
+    QFileDialog, QHBoxLayout, QTextEdit, QProgressBar, QCheckBox
 
 # sprites-making tool by ShereKhanRomeo
 # this code is free to use, change and post anywhere as I don't care XD
@@ -13,11 +14,11 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QLin
 # saves masks as a separate file alongside processed pics
 # red color shows which pixels will be saved from original pic and other pixels will be transparent
 # left here to let you experiment with settings and see what suits better for your needs
-_save_masks_preview = False
-_converter_settings_path = "ConverterSettings.json"
-_output_placeholder = "select output folder"
-_title = "Sprites-making tool by ShereKhanRomeo"
-_threads = []
+SAVE_MASKS_PREVIEW = False
+CONVERTER_SETTINGS_PATH = "../ConverterSettings.json"
+OUTPUT_PLACEHOLDER = "select output folder"
+TITLE = "Sprites-making tool by ShereKhanRomeo"
+THREADS = []
 
 app = QApplication([])
 
@@ -60,7 +61,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setFixedSize(QSize(640, 300))
-        self.setWindowTitle(_title)
+        self.setWindowTitle(TITLE)
         self.done = 0
         self.picsToDo = 0
         self.startedConverting = None
@@ -86,7 +87,8 @@ class MainWindow(QMainWindow):
         self.labelSpriteImagesHere = MyTextEdit()
         self.labelSpriteImagesHere.setText("Here")
 
-        self.labelSettings = QLabel(text="======================== Settings (hover over setting name for hints) ========================")
+        self.labelSettings = QLabel(text="======================== Settings (hover over setting name for hints) "
+                                         "========================")
 
         self.outputDirLabel = QLabel(text="Output folder:")
         self.outputDirPath = QLineEdit()
@@ -96,7 +98,8 @@ class MainWindow(QMainWindow):
 
         self.sharpnessLabel = QLabel(text="Sharpness:")
         self.sharpnessLabel.setToolTip("How sharp sprites contours are meant to be (decimal from 0 to 7):\n"
-                                       "0 - is 'turned off', sprites will contain lot of noise, but result in more smoothness\n"
+                                       "0 - is 'turned off', sprites will contain lot of noise, but result in more "
+                                       "smoothness\n "
                                        "1.5 - recommended\n"
                                        "7 - sharp, less noise, sprites are like cut out from paper with scissors")
         self.sharpnessInput = QLineEdit()
@@ -109,12 +112,14 @@ class MainWindow(QMainWindow):
         self.noiseInput = QLineEdit()
         self.noiseInput.setText(str(self.settings['noise']))
         self.multithreadingLabel = QLabel(text="Multithreading:")
-        self.multithreadingLabel.setToolTip("If checked all sprite pics will be processed simultaneously.\nOtherwise one-by-one with less RAM usage.")
+        self.multithreadingLabel.setToolTip("If checked all sprite pics will be processed simultaneously.\nOtherwise "
+                                            "one-by-one with less RAM usage.")
         self.multithreadingCheckBox = QCheckBox()
         self.multithreadingCheckBox.setChecked(self.settings['multi'])
 
         self.pngOptimizeLabel = QLabel(text="Optimize (for PNG):")
-        self.pngOptimizeLabel.setToolTip("If present and true, instructs the PNG writer to make the output file as small as possible.\n"
+        self.pngOptimizeLabel.setToolTip("If present and true, instructs the PNG writer to make the output file as "
+                                         "small as possible.\n "
                                          "This includes extra processing in order to find optimal encoder settings.")
         self.pngOptimizeCheckBox = QCheckBox()
         self.pngOptimizeCheckBox.setChecked(self.settings['pngOptimize'])
@@ -128,13 +133,17 @@ class MainWindow(QMainWindow):
         self.webpMethodInput.setText(str(self.settings['webpMethod']))
 
         self.webpLosslessLabel = QLabel(text="Lossless (for WEBP):")
-        self.webpLosslessLabel.setToolTip("If checked changes to lossless compression and 'Quality' becomes 'Compression'.")
+        self.webpLosslessLabel.setToolTip("If checked changes to lossless compression and 'Quality' becomes "
+                                          "'Compression'.")
         self.webpLosslessCheckBox = QCheckBox()
 
         self.webpQualityLabel = QLabel(text="Quality (for WEBP):")
-        self.webpQualityLabel.setToolTip("Integer, 0-100, Defaults to 80. For lossy, 0 gives the smallest file size and 100 the largest.\n"
-                                         "For lossless, this parameter is the amount of effort put into the compression:\n"
-                                         "0 is the fastest, but gives larger files compared to the slowest, but best, 100.")
+        self.webpQualityLabel.setToolTip("Integer, 0-100, Defaults to 80. For lossy, 0 gives the smallest file size "
+                                         "and 100 the largest.\n "
+                                         "For lossless, this parameter is the amount of effort put into the "
+                                         "compression:\n "
+                                         "0 is the fastest, but gives larger files compared to the slowest, but best, "
+                                         "100.")
         self.webpLosslessCheckBox.stateChanged.connect(self.losslessCheckboxChecked)
         self.webpLosslessCheckBox.setChecked(self.settings['webpLossless'])
         self.webpQualityInput = QLineEdit()
@@ -142,7 +151,8 @@ class MainWindow(QMainWindow):
         self.webpQualityInput.setText(str(self.settings['webpQuality']))
 
         self.pngCompressionLabel = QLabel(text="Compression (for PNG):")
-        self.pngCompressionLabel.setToolTip("How compressed resulting PNGs are meant to be (whole number from 0 to 9).\n"
+        self.pngCompressionLabel.setToolTip("How compressed resulting PNGs are meant to be (whole number from 0 to "
+                                            "9).\n "
                                             "0 - no compression\n"
                                             "1 - fastest compression\n"
                                             "9 - best compression")
@@ -230,12 +240,12 @@ class MainWindow(QMainWindow):
             self.webpQualityLabel.setText("Quality (for WEBP):")
 
     def tryLoadSettings(self):
-        if os.path.exists(_converter_settings_path):
-            with open(_converter_settings_path) as settingsFile:
+        if os.path.exists(CONVERTER_SETTINGS_PATH):
+            with open(CONVERTER_SETTINGS_PATH) as settingsFile:
                 return json.load(settingsFile)
         else:
             return {
-                'output': _output_placeholder,
+                'output': OUTPUT_PLACEHOLDER,
                 'sharpness': 2.9,
                 'noise': 2.9,
                 'multi': False,
@@ -247,7 +257,7 @@ class MainWindow(QMainWindow):
             }
 
     def trySaveSettings(self):
-        if not self.outputDirPath.text() == _output_placeholder:
+        if not self.outputDirPath.text() == OUTPUT_PLACEHOLDER:
             self.settings['output'] = self.outputDirPath.text()
             self.settings['sharpness'] = self.sharpnessInput.text()
             self.settings['noise'] = self.noiseInput.text()
@@ -257,7 +267,7 @@ class MainWindow(QMainWindow):
             self.settings['webpMethod'] = self.webpMethodInput.text()
             self.settings['webpLossless'] = self.webpLosslessCheckBox.isChecked()
             self.settings['webpQuality'] = self.webpQualityInput.text()
-            with open(_converter_settings_path, "w") as settingsFile:
+            with open(CONVERTER_SETTINGS_PATH, "w") as settingsFile:
                 json.dump(self.settings, settingsFile)
                 settingsFile.close()
 
@@ -276,35 +286,39 @@ class MainWindow(QMainWindow):
         return str(round(size / 1024))
 
     def startConverting(self):
-        global _threads
+        global THREADS
         self.trySaveSettings()
-        # if self.labelBgImageHere.text() != "Here" and self.labelSpriteImagesHere != "Here":
-        sprites = self.labelSpriteImagesHere.toPlainText().splitlines()
-        self.picsToDo = len(sprites)
-        self.done = 0
-        self.progressBar.setMaximum(self.picsToDo * 6)
-        self.progressBar.setValue(0)
-        self.picsDoneLabel.setText(str(self.done) + "/" + str(self.picsToDo))
-        self.picsSizeBeforeLabel.setText("Before: ... KB")
-        self.picsSizeAfterLabel.setText("After: ... KB")
-        self.setWindowTitle(_title)
-        self.ignoredPics = []
-        self.startedConverting = time.time()
-        for sprite in sprites:
-            if sprite != self.labelBgImageHere.text():
-                thread = Thread(target=self.processPicsWithNoiseThreshold,
-                                args=(self.labelBgImageHere.text(), sprite, self.outputDirPath.text() + '/', float(self.sharpnessInput.text()), float(self.noiseInput.text())))
-                thread.daemon = True
-                thread.start()
-                _threads.append(thread)
-                if not self.multithreadingCheckBox.isChecked():
-                    thread.join()
-            else:
-                self.picsToDo -= 1
-                self.progressBar.setMaximum(self.picsToDo * 6)
+        if not os.path.exists(self.labelBgImageHere.text()):
+            print("Nope! Can't find background picture path.")
+        elif not os.path.isfile(self.labelBgImageHere.text()):
+            print("Nope! Background picture path is not a file.")
+        elif self.labelSpriteImagesHere != "Here": 
+            sprites = self.labelSpriteImagesHere.toPlainText().splitlines()
+            self.picsToDo = len(sprites)
+            self.done = 0
+            self.progressBar.setMaximum(self.picsToDo * 6)
+            self.progressBar.setValue(0)
+            self.picsDoneLabel.setText(str(self.done) + "/" + str(self.picsToDo))
+            self.picsSizeBeforeLabel.setText("Before: ... KB")
+            self.picsSizeAfterLabel.setText("After: ... KB")
+            self.setWindowTitle(TITLE)
+            self.ignoredPics = []
+            self.startedConverting = time.time()
+            for sprite in sprites:
+                if sprite != self.labelBgImageHere.text():
+                    thread = Thread(target=self.processPicsWithNoiseThreshold,
+                                    args=(self.labelBgImageHere.text(), sprite, self.outputDirPath.text() + '/', float(self.sharpnessInput.text()), float(self.noiseInput.text())))
+                    thread.daemon = True
+                    thread.start()
+                    THREADS.append(thread)
+                    if not self.multithreadingCheckBox.isChecked():
+                        thread.join()
+                else:
+                    self.picsToDo -= 1
+                    self.progressBar.setMaximum(self.picsToDo * 6)
 
-        if not self.multithreadingCheckBox.isChecked():
-            self.setWindowTitle(_title + " - Done in " + str(round(time.time() - self.startedConverting, 2)) + " seconds")
+            if not self.multithreadingCheckBox.isChecked():
+                self.setWindowTitle(TITLE + " - Done in " + str(round(time.time() - self.startedConverting, 2)) + " seconds")
 
     def processPicsWithNoiseThreshold(self, _bgPic, _spritePic, _save_to, _sharpness_lvl, _noise_threshold):
         self.startConvertingButton.setText("Processing...")
@@ -330,14 +344,14 @@ class MainWindow(QMainWindow):
             mask.putdata(newimdata)
             picName = _spritePic[_spritePic.rfind('/') + 1:]
             self.progressBar.setValue(self.progressBar.value() + 1)
-            if _save_masks_preview:
+            if SAVE_MASKS_PREVIEW:
                 mask.save(_save_to + 'diff' + picName)
             ImageChops.composite(sprite, Image.new("RGBA", sprite.size, 0), mask) \
                 .save(
                 (_save_to + picName),
                 optimize=bool(self.pngOptimizeCheckBox),
                 compress_level=int(self.pngCompressionInput.text()),
-                lossless=self.webpLosslessCheckBox.isChecked(),
+                losseless=self.webpLosslessCheckBox.isChecked(),
                 method=int(self.webpMethodInput.text()),
                 quality=int(self.webpQualityInput.text())
             )
@@ -365,14 +379,15 @@ class MainWindow(QMainWindow):
                 self.picsSizeAfterLabel.setText("After: " + self.calculateSizeAfter() + " KB")
 
 
-try:
-    window = MainWindow()  # window starts hidden
-    window.show()  # need to show it manually
-    # Run the loop
-    app.exec()
-except Exception as error:
-    print("ERROR - " + str("".join(format_exception(type(error), value=error, tb=error.__traceback__))).split(
-        "The above exception was the direct cause of the following")[0])
-finally:
-    for t in _threads:
-        t.join()
+if __name__ == "__main__":
+    try:
+        window = MainWindow()  # window starts hidden
+        window.show()  # need to show it manually
+        # Run the loop
+        app.exec()
+    except Exception as error:
+        print("ERROR - " + str("".join(format_exception(type(error), value=error, tb=error.__traceback__))).split(
+            "The above exception was the direct cause of the following")[0])
+    finally:
+        for t in THREADS:
+            t.join()
