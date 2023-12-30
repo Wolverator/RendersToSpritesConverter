@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QLin
 # red color shows which pixels will be saved from original pic and other pixels will be transparent
 # left here to let you experiment with settings and see what suits better for your needs
 SAVE_MASKS_PREVIEW = False
-CONVERTER_SETTINGS_PATH = "../ConverterSettings.json"
+CONVERTER_SETTINGS_PATH = "ConverterSettings.json"
 OUTPUT_PLACEHOLDER = "select output folder"
 TITLE = "Sprites-making tool by ShereKhanRomeo"
 THREADS = []
