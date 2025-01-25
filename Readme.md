@@ -6,8 +6,8 @@
 
 ## How to use:
 
-1) download 2 files:
+1) Download 2 files:
    - RendersToSpritesConverter.py
-   - RendersToSpritesConverterLauncher.bat
-2) run Launcher.bat and inspect interface, labels, settings and settings' hints
+   - Launcher.bat
+2) Run Launcher.bat and inspect interface, labels, settings and settings' hints
 3) Use :D
