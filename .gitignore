@@ -1,6 +1,7 @@
 *.json
 *.webp
 *.idea
+*.bak
 /dist
 /build
 /.github

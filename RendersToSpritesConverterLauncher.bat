@@ -1,2 +1,2 @@
-@python src/main.py
+@python -3.10 RendersToSpritesConverter.py
 @pause

@@ -60,7 +60,7 @@ class MyTextEdit(QTextEdit):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setFixedSize(QSize(640, 300))
+        self.setFixedSize(QSize(720, 300))
         self.setWindowTitle(TITLE)
         self.done = 0
         self.picsToDo = 0
@@ -87,8 +87,8 @@ class MainWindow(QMainWindow):
         self.labelSpriteImagesHere = MyTextEdit()
         self.labelSpriteImagesHere.setText("Here")
 
-        self.labelSettings = QLabel(text="======================== Settings (hover over setting name for hints) "
-                                         "========================")
+        self.labelSettings = QLabel(text="============================= Settings (hover over setting name for hints) "
+                                         "=============================")
 
         self.outputDirLabel = QLabel(text="Output folder:")
         self.outputDirPath = QLineEdit()
